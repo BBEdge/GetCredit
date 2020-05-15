@@ -23,7 +23,7 @@ def get_alias(item, tempdir):
     return alias
 
 
-def get_credit(switch, alias, item, tempdir):
+def get_credit(switch, item, tempdir):
     credit = []
 
     zip.extract(item, tempdir)
@@ -62,16 +62,19 @@ def main():
                     alias = get_alias(item, tempdir)
 
                 if re.findall(r'SSHOW_PORT.txt', item):
-                    credit = get_credit(switch, alias, item, tempdir)
+                    credit = get_credit(switch, item, tempdir)
 
     credit.sort(key=lambda x: x[4])
+    header = 'switch pndx pid wwn credit fsz class sname alias'.split()
+    print("{:12s} {:8s} {:8s} {:23s} {:8s} {:8s} {:8s} {:11s} {:16s}".format(*header))
 
+    print
     for item in credit:
         wwn = item[3]
         for row in alias:
             if row[1] == wwn:
                 credit = item + row[0].split()
-                print("{:12s} {:8s} {:8s} {:16s} {:8s} {:8s} {:8s} {:8s} {}".format(*credit))
+                print("{:12s} {:8s} {:8s} {:23s} {:8s} {:8s} {:8s} {:8s} {}".format(*credit))
 
 
     try:
