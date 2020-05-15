@@ -1,19 +1,10 @@
 #!/usr/bin/env python3
-
-
 import fnmatch
 import gzip
 import re, os
 import shutil
 import tempfile
 import zipfile
-
-'''   
-    DATA SS REGEX: (?<=\_)\d+
-    ALIAS REGEX: alias.(\w*):(\S*)
-    OUTPUT FORMAT: switch, pid, wwn, credit, fsz, class, sname, alias
-    ^portloginshow\s(\d+)
-'''
 
 
 def get_alias(item, tempdir):
@@ -34,7 +25,6 @@ def get_alias(item, tempdir):
 
 def get_credit(switch, alias, item, tempdir):
     credit = []
-    skip = True
 
     zip.extract(item, tempdir)
     gz = os.path.join(tempdir, item)
@@ -43,12 +33,14 @@ def get_credit(switch, alias, item, tempdir):
         for line in f:
             match = re.search(r'^portloginshow\s(\d+)', line)
             if match:
-                pid = match.group(1).split()
-                words = switch + pid
-#                print(words)
-#                words = (switch + credit)
+                pndx = match.group(1).split()
 
-#    print(words)
+            match = re.search(r'ff\s+\w+\s+((?:[0-9a-fA-F]:?){16})\s+\d+\s+\d+\s+\w+\s+\w+=\w+', line)
+            if match:
+                words = switch + pndx + match.group().replace(' ', ' ').split()
+                del words[2]
+                credit.append(words)
+
     return credit
 
 
@@ -72,8 +64,15 @@ def main():
                 if re.findall(r'SSHOW_PORT.txt', item):
                     credit = get_credit(switch, alias, item, tempdir)
 
-#    for item in alias:
-#        print(item)
+    credit.sort(key=lambda x: x[4])
+
+    for item in credit:
+        wwn = item[3]
+        for row in alias:
+            if row[1] == wwn:
+                credit = item + row[0].split()
+                print("{:12s} {:8s} {:8s} {:16s} {:8s} {:8s} {:8s} {:8s} {}".format(*credit))
+
 
     try:
         shutil.rmtree(tempdir)
