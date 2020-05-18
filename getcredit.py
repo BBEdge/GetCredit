@@ -44,6 +44,21 @@ def get_credit(switch, item, tempdir):
     return credit
 
 
+def write_file(fileout, alias, credit):
+    with open(fileout, 'a') as ftext:
+        header = 'switch port pid wwn credit fsz class service alias'.split()
+        #    print('{:12s} {:8s} {:8s} {:26s} {:8s} {:8s} {:8s} {:14s} {}'.format(*header))
+        print('{:12s} {:8s} {:8s} {:26s} {:8s} {:8s} {:8s} {:14s} {}'.format(*header), file=ftext)
+
+        for item in credit:
+            wwn = item[3]
+            for row in alias:
+                if row[1] == wwn:
+                    credit = item + row[0].split()
+                    #                print('{:12s} {:8s} {:8s} {:26s} {:8s} {:8s} {:8s} {:14s} {}'.format(*credit))
+                    print('{:12s} {:8s} {:8s} {:26s} {:8s} {:8s} {:8s} {:14s} {}'.format(*credit), file=ftext)
+
+
 def main():
     global zip
     dinput = '/tmp/ss'
@@ -57,6 +72,8 @@ def main():
             zip = zipfile.ZipFile(os.path.join(dinput, files))
             f = zipfile.ZipFile.namelist(zip)
             switch = re.findall(r'(?<=\_)\w*(?=\_)', files)
+            datass = re.findall(r'(?<=\_)\d+', files)
+            fileout = os.path.join(''.join(datass)) + '.out'
             for item in f:
                 if re.findall(r'SSHOW_SYS.txt', item):
                     alias = get_alias(item, tempdir)
@@ -64,23 +81,17 @@ def main():
                 if re.findall(r'SSHOW_PORT.txt', item):
                     credit = get_credit(switch, item, tempdir)
 
-    credit.sort(key=lambda x: x[4], reverse=False)
-    header = 'switch port pid wwn credit fsz class service alias'.split()
-    print('{:12s} {:8s} {:8s} {:26s} {:8s} {:8s} {:8s} {:11s} {}'.format(*header))
+            credit.sort(key=lambda x: x[4], reverse=False)
 
-    for item in credit:
-        wwn = item[3]
-        for row in alias:
-            if row[1] == wwn:
-                credit = item + row[0].split()
-                print('{:12s} {:8s} {:8s} {:26s} {:8s} {:8s} {:8s} {:8s} {}'.format(*credit))
-
+            write_file(fileout, alias, credit)
 
     try:
         shutil.rmtree(tempdir)
         print("Directory '%s' has been removed successfully" % tempdir)
     except OSError as e:
         print('Delete of the directory %s failed' % tempdir, e)
+
+    print('See file collection: %s' % fileout)
 
 
 if __name__ == '__main__':
