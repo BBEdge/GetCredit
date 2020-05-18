@@ -77,7 +77,6 @@ def main():
                 if re.findall(r'SSHOW_PORT.txt', item):
                     credit = get_credit(zip, switch, alias, item, tempdir)
 
-#            credit.sort(key=lambda x: x[8], reverse=False)
             credit.sort(key=lambda x: (x[4], x[8]), reverse=False)
             write_file(fileout, credit)
 
@@ -87,7 +86,7 @@ def main():
     except OSError as e:
         print('Delete of the directory %s failed' % tempdir, e)
 
-#    print('See file collection: %s' % fileout)
+    print('See file collection: %s' % fileout)
 
 
 if __name__ == '__main__':
