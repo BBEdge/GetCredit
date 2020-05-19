@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import fnmatch
 import gzip
-import re, os
+import os
+import re
 import shutil
 import tempfile
 import zipfile
@@ -41,15 +42,15 @@ def get_credit(zip, switch, alias, item, tempdir):
                     if match.group(1) == item[1]:
                         words = switch + pndx + match.group().replace(' ', ' ').split() + item[0].split()
                         del words[2]
-                        if words[6] == 'c':
+                        if words[4] != '12' and words[6] == 'c':
                             credit.append(words)
-#                            print(words)
     return credit
 
 
 def write_file(fileout, credit):
-    with open(fileout, 'a') as ftext:
-        header = 'switch port pid wwn credit fsz class service alias'.split()
+    header = 'switch port pid wwn credit fsz class service alias'.split()
+
+    with open(fileout, 'w') as ftext:
         print('{:12s} {:8s} {:8s} {:26s} {:8s} {:8s} {:8s} {:14s} {}'.format(*header), file=ftext)
 
         for item in credit:
@@ -57,11 +58,19 @@ def write_file(fileout, credit):
 
 
 def main():
+    global credit
+    outlist = []
     dinput = '/tmp/ss'
     output = '/tmp/out'
 
     with tempfile.TemporaryDirectory() as tempdir:
         print('The created temporary directory is %s' % tempdir)
+
+    if not os.path.exists(output):
+        try:
+            os.mkdir(output)
+        except Exception as e:
+            print('Unable to create directory %s' %output)
 
     for files in os.listdir(dinput):
         if fnmatch.fnmatch(files, '*.zip'):
@@ -69,7 +78,8 @@ def main():
             f = zipfile.ZipFile.namelist(zip)
             switch = re.findall(r'(?<=\_)\w*(?=\_)', files)
             datass = re.findall(r'(?<=\_)\d+', files)
-            fileout = os.path.join(''.join(datass)) + '.out'
+            fileout = os.path.join(output, ''.join(datass)) + '.out'
+            print('Wait processed {} supportsave.'.format(*switch))
             for item in f:
                 if re.findall(r'SSHOW_SYS.txt', item):
                     alias = get_alias(zip, item, tempdir)
@@ -77,16 +87,18 @@ def main():
                 if re.findall(r'SSHOW_PORT.txt', item):
                     credit = get_credit(zip, switch, alias, item, tempdir)
 
-            credit.sort(key=lambda x: (x[4], x[8]), reverse=False)
-            write_file(fileout, credit)
+        outlist += credit
+
+    outlist.sort(key=lambda x: (x[4], x[8]), reverse=False)
+    write_file(fileout, outlist)
+
+    print('See file collection: %s' % fileout)
 
     try:
         shutil.rmtree(tempdir)
         print("Directory '%s' has been removed successfully" % tempdir)
     except OSError as e:
         print('Delete of the directory %s failed' % tempdir, e)
-
-    print('See file collection: %s' % fileout)
 
 
 if __name__ == '__main__':
