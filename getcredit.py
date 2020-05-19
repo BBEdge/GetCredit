@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import fnmatch
 import gzip
 import os
@@ -58,47 +59,57 @@ def write_file(fileout, credit):
 
 
 def main():
-    global credit
     outlist = []
-    dinput = '/tmp/ss'
+#    dinput = '/tmp/ss'
     output = '/tmp/out'
 
-    with tempfile.TemporaryDirectory() as tempdir:
-        print('The created temporary directory is %s' % tempdir)
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('-i', '--dinput', help='Directory with supportsave files', required=True)
+    args = parser.parse_args()
 
-    if not os.path.exists(output):
+    dinput = args.dinput
+
+    if os.listdir(dinput):
+        with tempfile.TemporaryDirectory() as tempdir:
+            print('The created temp directory is %s.' % tempdir)
+
+        if not os.path.exists(output):
+            try:
+                os.mkdir(output)
+            except Exception as e:
+                print('Unable to create directory %s.' % output)
+
+        for files in os.listdir(dinput):
+            if fnmatch.fnmatch(files, '*.zip'):
+                zip = zipfile.ZipFile(os.path.join(dinput, files))
+                f = zipfile.ZipFile.namelist(zip)
+                switch = re.findall(r'(?<=\_)\w*(?=\_)', files)
+                datass = re.findall(r'(?<=\_)\d+', files)
+                fileout = os.path.join(output, ''.join(datass)) + '.out'
+                print('Wait processed {} supportsave.'.format(*switch))
+                for item in f:
+                    if re.findall(r'SSHOW_SYS.txt', item):
+                        alias = get_alias(zip, item, tempdir)
+
+                    if re.findall(r'SSHOW_PORT.txt', item):
+                        credit = get_credit(zip, switch, alias, item, tempdir)
+
+            outlist += credit
+
+        outlist.sort(key=lambda x: (x[4], x[8]), reverse=False)
+        write_file(fileout, outlist)
+        print('See file collection: %s' % fileout)
+
         try:
-            os.mkdir(output)
-        except Exception as e:
-            print('Unable to create directory %s' %output)
+            shutil.rmtree(tempdir)
+            print("Temp directory '%s' has been removed successfully." % tempdir)
+        except OSError as e:
+            print('Delete of the directory %s failed.' % tempdir, e)
 
-    for files in os.listdir(dinput):
-        if fnmatch.fnmatch(files, '*.zip'):
-            zip = zipfile.ZipFile(os.path.join(dinput, files))
-            f = zipfile.ZipFile.namelist(zip)
-            switch = re.findall(r'(?<=\_)\w*(?=\_)', files)
-            datass = re.findall(r'(?<=\_)\d+', files)
-            fileout = os.path.join(output, ''.join(datass)) + '.out'
-            print('Wait processed {} supportsave.'.format(*switch))
-            for item in f:
-                if re.findall(r'SSHOW_SYS.txt', item):
-                    alias = get_alias(zip, item, tempdir)
-
-                if re.findall(r'SSHOW_PORT.txt', item):
-                    credit = get_credit(zip, switch, alias, item, tempdir)
-
-        outlist += credit
-
-    outlist.sort(key=lambda x: (x[4], x[8]), reverse=False)
-    write_file(fileout, outlist)
-
-    print('See file collection: %s' % fileout)
-
-    try:
-        shutil.rmtree(tempdir)
-        print("Directory '%s' has been removed successfully" % tempdir)
-    except OSError as e:
-        print('Delete of the directory %s failed' % tempdir, e)
+    else:
+        print('Directory %s is empty.' % dinput)
+        print('Specify the folder containing the files in the format: supportsave_switchname_YYYYMMDDHHMM.zip')
+        exit(1)
 
 
 if __name__ == '__main__':
