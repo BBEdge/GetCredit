@@ -111,12 +111,8 @@ def main():
         else:
             print('Directory %s is empty or does not exist.' % dinput)
             print('Specify a different directory of the file format: supportsave_switchname_YYYYMMDDHHMM.zip')
-            exit(1)
-
     except FileNotFoundError as e:
         print(e)
-        exit(1)
-
 
 
 if __name__ == '__main__':
