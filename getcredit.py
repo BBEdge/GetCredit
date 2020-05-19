@@ -109,7 +109,6 @@ def main():
     else:
         print('Directory %s is empty.' % dinput)
         print('Specify the folder containing the files in the format: supportsave_switchname_YYYYMMDDHHMM.zip')
-        exit(1)
 
 
 if __name__ == '__main__':
