@@ -81,11 +81,11 @@ def main():
                 except Exception as e:
                     print('Unable to create directory %s.' % output)
 
-            for files in os.listdir(dinput):
+            for files in sorted(os.listdir(dinput)):
                 if fnmatch.fnmatch(files, '*.zip'):
                     zip = zipfile.ZipFile(os.path.join(dinput, files))
                     f = zipfile.ZipFile.namelist(zip)
-                    switch = re.findall(r'(?<=\_)\w*(?=\_)', files)
+                    switch = re.findall(r'(?<=_)\w*\S*(?=_)', files)
                     datass = re.findall(r'(?<=\_)\d+', files)
                     fileout = os.path.join(output, ''.join(datass)) + '.out'
                     print('Wait processed {} supportsave.'.format(*switch))
