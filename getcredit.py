@@ -11,7 +11,6 @@ import zipfile
 
 def get_alias(zip, item, tempdir):
     alias = []
-
     zip.extract(item, tempdir)
     gz = os.path.join(tempdir, item)
 
@@ -61,17 +60,16 @@ def write_file(fileout, credit):
 def main():
     outlist = []
 #    dinput = '/tmp/ss'
+#    dinput = '/tmp/oper/SS/commander/202005200220'
     output = '/tmp/out'
 
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('-i', '--dinput', help='Directory with supportsave files', required=True)
     args = parser.parse_args()
-
     dinput = args.dinput
 
     try:
         if os.path.isdir(dinput) and fnmatch.filter(os.listdir(dinput), '*.zip'):
-
             with tempfile.TemporaryDirectory() as tempdir:
                 print('The created temp directory is %s.' % tempdir)
 
@@ -81,26 +79,26 @@ def main():
                 except Exception as e:
                     print('Unable to create directory %s.' % output)
 
-            for files in sorted(os.listdir(dinput)):
-                if fnmatch.fnmatch(files, '*.zip'):
+            for files in sorted([f for f in os.listdir(dinput) if os.path.isfile(os.path.join(dinput, f))]):
+                if re.match(r'supportsave_\w*\S*_\d+.zip', files):
                     zip = zipfile.ZipFile(os.path.join(dinput, files))
                     f = zipfile.ZipFile.namelist(zip)
                     switch = re.findall(r'(?<=_)\w*\S*(?=_)', files)
                     datass = re.findall(r'(?<=\_)\d+', files)
                     fileout = os.path.join(output, ''.join(datass)) + '.out'
-                    print('Wait processed {} supportsave.'.format(*switch))
+                    print('Waiting for processing supportsave {}'.format(*switch))
                     for item in f:
                         if re.findall(r'SSHOW_SYS.txt', item):
                             alias = get_alias(zip, item, tempdir)
 
                         if re.findall(r'SSHOW_PORT.txt', item):
-                            credit = get_credit(zip, switch, alias, item, tempdir)
+                                credit = get_credit(zip, switch, alias, item, tempdir)
 
-                outlist += credit
+                    outlist += credit
 
             outlist.sort(key=lambda x: (x[4], x[8]), reverse=False)
             write_file(fileout, outlist)
-            print('See file collection: %s' % fileout)
+            print('See the result here: %s' % fileout)
 
             try:
                 shutil.rmtree(tempdir)
@@ -110,6 +108,7 @@ def main():
         else:
             print('Directory %s is empty or does not exist.' % dinput)
             print('Specify a different directory of the file format: supportsave_switchname_YYYYMMDDHHMM.zip')
+
     except FileNotFoundError as e:
         print(e)
 
